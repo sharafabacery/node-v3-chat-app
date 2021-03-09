@@ -13,6 +13,7 @@ const {
     getUser,
     getUsersInRoom
 } = require('./utils/users')
+const{caear_cipher_dencrypt, caear_cipher_encrypt}=require("./utils/encryption")
 const app = express();
 const server = http.createServer(app) //for passing
 const io = socketio(server) //expect to run with http server
@@ -44,8 +45,8 @@ io.on('connection', (socket) => {
 
         socket.join(user.room)
 
-        socket.emit('message', genrateMessage('Welcome'))
-        socket.broadcast.to(user.room).emit('message', genrateMessage(`${user.username} has joined!`))
+        socket.emit('message', genrateMessage(caear_cipher_encrypt('Welcome',8)))
+        socket.broadcast.to(user.room).emit('message', genrateMessage(caear_cipher_encrypt(`${user.username} has joined!`,8)))
         io.to(user.room).emit('roomData',{
             room:user.room,
             users:getUsersInRoom(user.room)
@@ -58,6 +59,10 @@ io.on('connection', (socket) => {
         if (filter.isProfane(message)) {
             return callback('profanity is not allowed')
         }
+        //decrypt message with num 5
+        message=caear_cipher_dencrypt(message,5)
+        message=caear_cipher_encrypt(message,8)
+        //encrypt message with num 8
         io.to(user.room).emit('message', genrateMessage(message,user.username))
         callback()
     })
@@ -71,11 +76,11 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
        const user= removeUser(socket.id)
         if (user) {
-        io.to(user.room).emit('message', genrateMessage(`${user.username} has left!`))
+        io.to(user.room).emit('message', genrateMessage(caear_cipher_encrypt(`${user.username} has left!`)))
         io.to(user.room).emit('roomData',{
             room:user.room,
             users:getUsersInRoom(user.room)
-        })   
+        })
         }
     })
 
